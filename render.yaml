@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: simbrief-proxy
+    runtime: python
+    buildCommand: ""
+    startCommand: python simbrief_proxy.py
+    plan: free
