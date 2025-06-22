@@ -17,16 +17,13 @@ def get_route_data():
         response = requests.get(xml_url, timeout=10)
         response.raise_for_status()
 
-        # XML korrekt parsen (inkl. Encoding)
         root = ET.fromstring(response.content)
-
-        # Direkte Suche in general-Block
         general = root.find("general")
         if general is None:
             return jsonify({"error": "Kein <general>-Block im XML gefunden."}), 500
 
-        route = general.findtext("route_text") or "unbekannt"
         fl = general.findtext("initial_altitude") or "unbekannt"
+        route = general.findtext("route_text") or general.findtext("route_ifr") or "unbekannt"
 
         return jsonify({
             "route": route.strip(),
