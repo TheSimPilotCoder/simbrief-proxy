@@ -5,30 +5,32 @@ import os
 
 app = Flask(__name__)
 
-# Wake-up / Health-Check-Endpunkt
 @app.route("/simbrief/health", methods=["GET"])
 def health_check():
     return jsonify({"status": "Proxy ist aktiv."}), 200
 
-# Route und Flughöhe abrufen
 @app.route("/simbrief/route", methods=["GET"])
 def get_route_data():
-    # Standard-XML-Quelle oder benutzerdefinierte über ?xml=...
     xml_url = request.args.get("xml") or "https://www.simbrief.com/api/xml.fetcher.php?userid=559474"
 
     try:
         response = requests.get(xml_url, timeout=10)
         response.raise_for_status()
 
+        # XML korrekt parsen (inkl. Encoding)
         root = ET.fromstring(response.content)
 
-        # Korrekte Pfade innerhalb <general>
-        route = root.findtext("./general/route_text") or "unbekannt"
-        fl = root.findtext("./general/initial_altitude") or "unbekannt"
+        # Direkte Suche in general-Block
+        general = root.find("general")
+        if general is None:
+            return jsonify({"error": "Kein <general>-Block im XML gefunden."}), 500
+
+        route = general.findtext("route_text") or "unbekannt"
+        fl = general.findtext("initial_altitude") or "unbekannt"
 
         return jsonify({
-            "route": route,
-            "initial_altitude": fl
+            "route": route.strip(),
+            "initial_altitude": fl.strip()
         })
 
     except Exception as e:
@@ -37,7 +39,6 @@ def get_route_data():
             "details": str(e)
         }), 500
 
-# Wichtige Startkonfiguration für Render
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
